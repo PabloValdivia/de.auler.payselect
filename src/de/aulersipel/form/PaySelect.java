@@ -104,6 +104,7 @@ public class PaySelect
 			+ " AND EXISTS (SELECT * FROM C_BankAccountDoc d WHERE d.C_BankAccount_ID=ba.C_BankAccount_ID AND d.IsActive='Y' ) "
 			+ "ORDER BY 2",
 			"b", MRole.SQL_FULLYQUALIFIED, MRole.SQL_RW);
+		
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 		try
@@ -149,6 +150,45 @@ public class PaySelect
 			  + " AND (i.IsSOTrx='N' OR (i.IsSOTrx='Y' AND i.PaymentRule='D'))"
 			  + " AND i.IsPaid<>'Y') "
 			+ "ORDER BY 2";
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		try
+		{
+			pstmt = DB.prepareStatement(sql, null);
+			rs = pstmt.executeQuery();
+			while (rs.next())
+			{
+				pp = new KeyNamePair(rs.getInt(1), rs.getString(2));
+				data.add(pp);
+			}
+		}
+		catch (SQLException e)
+		{
+			log.log(Level.SEVERE, sql, e);
+		}
+		finally
+		{
+			DB.close(rs, pstmt);
+			rs = null;
+			pstmt = null;
+		}
+		
+		return data;
+	}
+	
+	public ArrayList<KeyNamePair> getOrgData()
+	{
+		ArrayList<KeyNamePair> data = new ArrayList<KeyNamePair>();
+		
+		
+		KeyNamePair pp = null;// new KeyNamePair(0, "");
+		//data.add(pp);
+		
+		String sql = MRole.getDefault().addAccessSQL(
+			"SELECT ao.AD_Org_ID, ao.Name FROM AD_Org ao", "ao",
+			MRole.SQL_FULLYQUALIFIED, MRole.SQL_RO)			 
+			+ " AND AD_Org_ID<>0 ORDER BY 2";
+		//System.out.println("SQL===>"+sql);
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 		try
@@ -400,7 +440,7 @@ public class PaySelect
 	 *  PM 03-2015
 	 */
 	public void loadTableInfo(BankInfo bi, Timestamp payDate, ValueNamePair paymentRule, boolean onlyDue, 
-			KeyNamePair bpartner, KeyNamePair docType, IMiniTable miniTable, Timestamp nextPayDate)
+			KeyNamePair bpartner, KeyNamePair docType, IMiniTable miniTable, Timestamp nextPayDate,KeyNamePair org)
 	{
 		
 		//log.config("");
@@ -429,6 +469,11 @@ public class PaySelect
 
 
 		
+		//Org Id
+		KeyNamePair or = org;
+		int AD_Org_ID = or.getKey();
+		if (AD_Org_ID != 0)
+			sql += " AND i.AD_Org_ID=?";
 		//
 		KeyNamePair pp = bpartner;
 		int C_BPartner_ID = pp.getKey();
@@ -465,6 +510,8 @@ public class PaySelect
 				
 			if (onlyDue)
 				pstmt.setTimestamp(index++, payDate);
+			if (AD_Org_ID != 0)
+				pstmt.setInt(index++, AD_Org_ID);
 			if (C_BPartner_ID != 0)
 				pstmt.setInt(index++, C_BPartner_ID);
 			if (c_doctype_id  != 0)                    //Document type
@@ -624,7 +671,7 @@ public class PaySelect
 	/**
 	 *  Generate PaySelection
 	 */
-	public String generatePaySelect(IMiniTable miniTable, ValueNamePair paymentRule, Timestamp payDate, BankInfo bi)
+	public String generatePaySelect(IMiniTable miniTable, ValueNamePair paymentRule, Timestamp payDate, BankInfo bi,KeyNamePair adOrg)
 	{
 		log.info("");
 	//	String trxName Trx.createTrxName("PaySelect");
@@ -640,6 +687,7 @@ public class PaySelect
 				+ " - " + paymentRule.getName()
 				+ " - " + payDate);
 		m_ps.setPayDate (payDate);
+		m_ps.setAD_Org_ID(Integer.parseInt(adOrg.getID()));
 		m_ps.setC_BankAccount_ID(bi.C_BankAccount_ID);
 		m_ps.setIsApproved(true);
 		if (!m_ps.save())

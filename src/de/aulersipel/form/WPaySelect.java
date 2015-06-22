@@ -97,6 +97,10 @@ public class WPaySelect extends PaySelect
 	private Checkbox onlyDue = new Checkbox();
 	private Label labelBPartner = new Label();
 	private Listbox fieldBPartner = ListboxFactory.newDropdownListbox();
+	
+	private Label labelOrg = new Label();
+	private Listbox fieldOrg = ListboxFactory.newDropdownListbox();
+	
 	private Label dataStatus = new Label();
 	private WListbox miniTable = ListboxFactory.newDataTable();
 	private ConfirmPanel commandPanel = new ConfirmPanel(true, false, false, false, false, false, false);
@@ -154,12 +158,16 @@ public class WPaySelect extends PaySelect
 	private void zkInit() throws Exception
 	{
 		//
+		
 		form.appendChild(mainPanel);
 		mainPanel.appendChild(mainLayout);
 		mainPanel.setStyle("width: 100%; height: 100%; padding: 0; margin: 0");
 		mainLayout.setHeight("100%");
 		mainLayout.setWidth("99%");
 		parameterPanel.appendChild(parameterLayout);
+		//
+		labelOrg.setText(Msg.translate(Env.getCtx(), "AD_Org_ID"));
+		fieldOrg.addActionListener(this);
 		//
 		labelBankAccount.setText(Msg.translate(Env.getCtx(), "C_BankAccount_ID"));
 		fieldBankAccount.addActionListener(this);
@@ -179,7 +187,7 @@ public class WPaySelect extends PaySelect
 		dataStatus.setText(" ");
 		dataStatus.setPre(true);
 		
-		labelNextPayDate.setText(Msg.translate(Env.getCtx(), "next PayDate")); // PM - 03-2015
+		labelNextPayDate.setText(Msg.translate(Env.getCtx(), "Next PayDate")); // PM - 03-2015
 		
 		//
 		bGenerate.addActionListener(this);
@@ -192,6 +200,9 @@ public class WPaySelect extends PaySelect
 		
 		Rows rows = parameterLayout.newRows();
 		Row row = rows.newRow();
+		row.appendChild(labelOrg.rightAlign());
+		row.appendChild(fieldOrg);
+		row = rows.newRow();
 		row.appendChild(labelBankAccount.rightAlign());
 		row.appendChild(fieldBankAccount);
 		row.appendChild(labelBankBalance.rightAlign());
@@ -258,6 +269,11 @@ public class WPaySelect extends PaySelect
 	 */
 	private void dynInit()
 	{
+		ArrayList<KeyNamePair> orgData = getOrgData();
+		for(KeyNamePair oo : orgData)
+			fieldOrg.appendItem(oo.getName(), oo);
+		fieldOrg.setSelectedIndex(0);
+		
 		ArrayList<BankInfo> bankAccountData = getBankAccountData();
 		for(BankInfo bi : bankAccountData)
 			fieldBankAccount.appendItem(bi.toString(), bi);
@@ -326,10 +342,11 @@ public class WPaySelect extends PaySelect
 		ValueNamePair paymentRule = (ValueNamePair) fieldPaymentRule.getSelectedItem().getValue();
 		KeyNamePair bpartner = (KeyNamePair) fieldBPartner.getSelectedItem().getValue();
 		KeyNamePair docType = (KeyNamePair) fieldDtype.getSelectedItem().getValue();
+		KeyNamePair org = (KeyNamePair) fieldOrg.getSelectedItem().getValue();
 		
 		Timestamp nextPayDate = (Timestamp) fieldNextPayDate.getValue();
   
-		loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), bpartner, docType, miniTable, nextPayDate);
+		loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), bpartner, docType, miniTable, nextPayDate,org);
 		
 
 	}   //  loadTableInfo
@@ -364,7 +381,7 @@ public class WPaySelect extends PaySelect
 		
 
 		//  Update Open Invoices
-		else if (e.getTarget() == fieldBPartner || e.getTarget() == bRefresh || e.getTarget() == fieldDtype)
+		else if (e.getTarget() == fieldOrg ||e.getTarget() == fieldBPartner || e.getTarget() == bRefresh || e.getTarget() == fieldDtype || e.getTarget()==fieldOrg)
 			loadTableInfo();
 
 	}   //  actionPerformed
@@ -438,7 +455,7 @@ public class WPaySelect extends PaySelect
 		
 		String msg = generatePaySelect(miniTable, (ValueNamePair) fieldPaymentRule.getSelectedItem().getValue(), 
 				new Timestamp(fieldPayDate.getComponent().getValue().getTime()), 
-				(BankInfo)fieldBankAccount.getSelectedItem().getValue());
+				(BankInfo)fieldBankAccount.getSelectedItem().getValue(),(KeyNamePair) fieldOrg.getSelectedItem().getValue());
 		
 		if(msg != null && msg.length() > 0)		
 		{
