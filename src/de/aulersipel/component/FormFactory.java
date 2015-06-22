@@ -19,7 +19,7 @@ public class FormFactory implements IFormFactory{
 				clazz = loader.loadClass(formName);
 				
 			}catch (Exception e){
-				log.fine("load FORM de.aulersipel.form FAILED" );
+				log.fine("load FORM de.aulersipel.webui.apps.form FAILED" );
 			}
 			if (clazz!=null){
 				try{
